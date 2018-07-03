@@ -48,12 +48,14 @@ policies = {
 asterixdb = "~/asterixdb/opt/local"
 
 
+# You may comment the 2 call function for start_server and stop_server if you don't want restart the database
+
 def start_server():
     # Use this if the database is on another machine
     # call("ssh REMOTE_SERVER \"bash -l -c '" + asterixdb + "/bin/start-sample-cluster.sh'\"", shell=True)
 
     # Run database on local machine
-    call(asterixdb + "/bin/start-sample-cluster.sh".format(asterixdb), shell=True)
+    call("\"" + asterixdb + "/bin/start-sample-cluster.sh\"", shell=True)
 
     pass
 
@@ -63,7 +65,7 @@ def stop_server():
     # call("ssh REMOTE_SERVER \"bash -l -c '" + asterixdb + "/bin/stop-sample-cluster.sh'\"", shell=True)
 
     # Run database on local machine
-    call(asterixdb + "/bin/stop-sample-cluster.sh".format(asterixdb), shell=True)
+    call("\"" + asterixdb + "/bin/stop-sample-cluster.sh\"", shell=True)
 
     pass
 
