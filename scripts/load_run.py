@@ -5,23 +5,71 @@ import requests
 import sys
 from subprocess import call
 
+### Modify the below parameters ###
+
+# You may need to modify feed configuration in create_feed() if you don't use localhost
+
+interpreter = "python3.5"  # Python interpreter to run YCSB
+
 load_name = "load.properties"
-run_name = "read_only.properties"  # The task you want to run
+
+# The tasks you want to run, in order
+run_names = ("read_only.properties", "read_most.properties", "read_insert.properties")
+
 load_threads = 4  # Use 4 threads for loading
 run_threads = 1  # Use 1 thread for running workload
+
+# Merge policies you are testing, key is the file name for log, value is the policy name and
+# parameters for creating the dataset
+policies = {
+    # No merge policy
+    "no-merge": (
+        "no-merge",
+        None
+    ),
+    # Constant policy, K=5
+    "const-5": (
+        "constant",
+        {
+            "num-components": 5
+        }
+    ),
+    # Prefix policy, 4 components, max size 128MB
+    "prefix-4-128MB": (
+        "prefix",
+        {
+            "max-tolerance-component-count": 4,
+            "max-mergable-component-size": 134217728,
+        }
+    ),
+}
 
 # Path of AsterixDB on server
 asterixdb = "~/asterixdb/opt/local"
 
-# Merge policies you are testing, key is the file name for log, value is the parameters for creating the dataset
-policies = {
-    # No merge policy
-    "no-merge": ("no-merge", None),
-    # Constant policy, K=5
-    "const-5": ("constant", ("\"num-components\":5",)),
-    # Prefix policy, 4 components, max size 128MB
-    "prefix-4-128MB": ("prefix", ("\"max-tolerance-component-count\":4", "\"max-mergable-component-size\":134217728")),
-}
+
+def start_server():
+    # Use this if the database is on another machine
+    # call("ssh REMOTE_SERVER \"bash -l -c '" + asterixdb + "/bin/start-sample-cluster.sh'\"", shell=True)
+
+    # Run database on local machine
+    call(asterixdb + "/bin/start-sample-cluster.sh".format(asterixdb), shell=True)
+
+    pass
+
+
+def stop_server():
+    # Use this if the database is on another machine
+    # call("ssh REMOTE_SERVER \"bash -l -c '" + asterixdb + "/bin/stop-sample-cluster.sh'\"", shell=True)
+
+    # Run database on local machine
+    call(asterixdb + "/bin/stop-sample-cluster.sh".format(asterixdb), shell=True)
+
+    pass
+
+
+### Modify the above parameters ###
+
 
 dir_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
@@ -31,7 +79,7 @@ if not os.path.isdir(logs_dir):
     os.mkdir(logs_dir)
 
 load_path = os.path.join(dir_path, "workloads", load_name)
-run_path = os.path.join(dir_path, "workloads", run_name)
+run_paths = [os.path.join(dir_path, "workloads", n) for n in run_names]
 
 query_url = ""
 feed_port = 0
@@ -80,6 +128,17 @@ CREATE TYPE usertype AS CLOSED {
     return exe_sqlpp(cmd)
 
 
+def paras_to_str(paras):
+    ret = []
+    for k in sorted(paras.keys()):
+        v = paras[k]
+        if type(v) == str:
+            ret.append("\"" + k + "\":\"" + v + "\"")
+        else:
+            ret.append("\"" + k + "\":" + str(v))
+    return ",".join(ret)
+
+
 def create_table(name, paras):
     if paras is not None:
         cmd = """USE ycsb;
@@ -88,7 +147,7 @@ CREATE DATASET usertable (usertype)
     WITH {
         "merge-policy":{
             "name":""" + "\"" + name + "\"" + """,
-            "parameters":{""" + ",".join(paras) + """}
+            "parameters":{""" + paras_to_str(paras) + """}
         }
     };"""
     else:
@@ -103,6 +162,7 @@ CREATE DATASET usertable (usertype)
     return exe_sqlpp(cmd)
 
 
+# Modify feed configuration here
 def create_feed():
     cmd = """USE ycsb;
 CREATE FEED userfeed WITH {
@@ -129,48 +189,38 @@ STOP FEED userfeed;"""
     return exe_sqlpp(cmd)
 
 
-def start_server():
-    # Use this if the database is on another machine
-    # call("ssh REMOTE_SERVER \"bash -l -c '" + asterixdb + "/bin/start-sample-cluster.sh'\"", shell=True)
-
-    # Run database on local machine
-    call(asterixdb + "/bin/start-sample-cluster.sh".format(asterixdb), shell=True)
-
-    pass
-
-
-def stop_server():
-    # Use this if the database is on another machine
-    # call("ssh REMOTE_SERVER \"bash -l -c '" + asterixdb + "/bin/stop-sample-cluster.sh'\"", shell=True)
-
-    # Run database on local machine
-    call(asterixdb + "/bin/stop-sample-cluster.sh".format(asterixdb), shell=True)
-
-    pass
+def get_base_name(f):
+    fn = os.path.basename(f)
+    if "." in fn:
+        tmp = fn.split(".")
+        return ".".join(tmp[:-1])
+    else:
+        return fn
 
 
 def load(filename):
+    base = get_base_name(load_name)
     if load_threads == 1:
-        cmd = ycsb + " load asterixdb -P " + load_path + " -p exportfile=" + \
-              os.path.join(logs_dir, filename + ".load.txt") + " -s > " + \
-              os.path.join(logs_dir, filename + ".load.log")
+        cmd = interpreter + " \"" + ycsb + "\" load asterixdb -P \"" + load_path + "\" -p exportfile=\"" + \
+              os.path.join(logs_dir, filename + "." + base + ".txt") + "\" -s > \"" + \
+              os.path.join(logs_dir, filename + "." + base + ".log") + "\""
     else:
-        cmd = ycsb + " load asterixdb -P " + load_path + " -p exportfile=" + \
-              os.path.join(logs_dir, filename + ".load.txt") + " -s -threads " + str(load_threads) + " > " + \
-              os.path.join(logs_dir, filename + ".load.log")
+        cmd = interpreter + " \"" + ycsb + "\" load asterixdb -P \"" + load_path + "\" -p exportfile=\"" + \
+              os.path.join(logs_dir, filename + "." + base + ".txt") + "\" -s -threads " + str(load_threads) + \
+              " > \"" + os.path.join(logs_dir, filename + "." + base + ".log") + "\""
     call(cmd, shell=True)
 
 
-def run(filename):
+def run(filename, run_path):
+    base = get_base_name(run_path)
     if run_threads == 1:
-        cmd = ycsb + " run asterixdb -P " + run_path + " -p exportfile=" + \
-              os.path.join(logs_dir, filename + ".run.txt") + " -s > " + \
-              os.path.join(logs_dir, filename + ".run.log")
+        cmd = interpreter + " \"" + ycsb + "\" run asterixdb -P \"" + run_path + "\" -p exportfile=\"" + \
+              os.path.join(logs_dir, filename + "." + base + ".txt") + "\" -s > \"" + \
+              os.path.join(logs_dir, filename + "." + base + ".log") + "\""
     else:
-        cmd = ycsb + " run asterixdb -P " + run_path + " -p exportfile=" + \
-              os.path.join(logs_dir, filename + ".run.txt") + " -s -threads " + str(run_threads) + " > " + \
-              os.path.join(logs_dir, filename + ".run.log")
-    print(cmd)
+        cmd = interpreter + " \"" + ycsb + "\" run asterixdb -P \"" + run_path + "\" -p exportfile=\"" + \
+              os.path.join(logs_dir, filename + "." + base + ".txt") + "\" -s -threads " + str(run_threads) + \
+              " > \"" + os.path.join(logs_dir, filename + "." + base + ".log") + "\""
     call(cmd, shell=True)
 
 
@@ -205,13 +255,23 @@ def run_exp(filename, policy):
 
     load(filename)
 
-    # Stop server if necessary
-    stop_server()
+    for run_path in run_paths:
+        # Stop server if necessary
+        stop_server()
 
-    # Start server
-    start_server()
+        # Start server
+        start_server()
 
-    run(filename)
+        # Start feed in case it's stopped
+        try:
+            start_feed()
+        except BaseException:
+            pass
+
+        base = get_base_name(run_path)
+        print("Run " + base)
+        run(filename, run_path)
+        print("Finished run " + base)
 
     print("Done " + filename)
 
