@@ -1,3 +1,0 @@
-2018-07-03 00:01:48:396 0 sec: 0 operations; 
-2018-07-03 00:01:58:373 10 sec: 401 operations; 40.1 current ops/sec; [READ AverageLatency(us)=23484.85] 
-2018-07-03 00:02:08:372 20 sec: 840 operations; 43.9 current ops/sec; [READ AverageLatency(us)=22776.25] 

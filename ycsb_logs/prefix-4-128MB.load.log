@@ -1,4 +1,0 @@
-2018-07-02 23:58:12:330 0 sec: 0 operations; 
-2018-07-02 23:58:22:307 10 sec: 32520 operations; 3251.67 current ops/sec; [INSERT AverageLatency(us)=305.02] 
-2018-07-02 23:58:32:306 20 sec: 58353 operations; 2583.56 current ops/sec; [INSERT AverageLatency(us)=388.04] 
-2018-07-02 23:58:42:481 30 sec: 82912 operations; 2455.9 current ops/sec; [CLEANUP AverageLatency(us)=163] [INSERT AverageLatency(us)=413.6] 

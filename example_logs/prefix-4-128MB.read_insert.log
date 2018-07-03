@@ -1,0 +1,8 @@
+2018-07-03 11:22:17:158 0 sec: 0 operations; 
+2018-07-03 11:22:27:132 10 sec: 838 operations; 83.8 current ops/sec; [READ AverageLatency(us)=21990.65] [INSERT AverageLatency(us)=130.19] 
+2018-07-03 11:22:37:132 20 sec: 1719 operations; 88.1 current ops/sec; [READ AverageLatency(us)=21703.63] [INSERT AverageLatency(us)=51.42] 
+2018-07-03 11:22:47:132 30 sec: 2670 operations; 95.1 current ops/sec; [READ AverageLatency(us)=21490.56] [INSERT AverageLatency(us)=36.44] 
+2018-07-03 11:22:57:132 40 sec: 3637 operations; 96.7 current ops/sec; [READ AverageLatency(us)=20837] [INSERT AverageLatency(us)=36.84] 
+2018-07-03 11:23:07:132 50 sec: 4535 operations; 89.8 current ops/sec; [READ AverageLatency(us)=21430.46] [INSERT AverageLatency(us)=33.65] 
+2018-07-03 11:23:17:132 60 sec: 5467 operations; 93.2 current ops/sec; [READ AverageLatency(us)=21149.24] [INSERT AverageLatency(us)=32.4] 
+2018-07-03 11:23:17:136 60 sec: 5468 operations; 250 current ops/sec; [READ AverageLatency(us)=21774] [CLEANUP AverageLatency(us)=125]  
