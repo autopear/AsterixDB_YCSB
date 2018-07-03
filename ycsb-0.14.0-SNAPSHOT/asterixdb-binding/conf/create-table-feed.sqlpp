@@ -1,0 +1,38 @@
+DROP DATAVERSE ycsb IF EXISTS;
+CREATE DATAVERSE ycsb;
+USE ycsb;
+
+CREATE TYPE UserType AS {
+  YCSB_KEY: string,
+  field0: binary,
+  field1: binary,
+  field2: binary,
+  field3: binary,
+  field4: binary,
+  field5: binary,
+  field6: binary,
+  field7: binary,
+  field8: binary,
+  field9: binary
+};
+
+CREATE DATASET usertable(UserType) PRIMARY KEY YCSB_KEY;
+
+CREATE FEED userfeed WITH {
+  "adapter-name": "socket_adapter",
+  "sockets": "localhost:10001",
+  "address-type": "IP",
+  "type-name": "UserType",
+  "format": "adm",
+  "upsert-feed": "true"
+};
+
+CONNECT FEED userfeed TO DATASET usertable;
+
+START FEED userfeed;
+
+
+
+STOP FEED userfeed;
+
+DISCONNECT FEED userfeed FROM DATASET usertable;
