@@ -3,49 +3,30 @@
 import os
 import requests
 import sys
+import zipfile
 from subprocess import call
 
 ### Modify the below parameters ###
 
 # You may need to modify feed configuration in create_feed() if you don't use localhost
 
-interpreter = "python3.5"  # Python interpreter to run YCSB
+interpreter = "python3.6"  # Python interpreter to run YCSB
 
 load_name = "load.properties"
 
 # The tasks you want to run, in order
-run_names = ("read_only.properties", "read_most.properties", "read_insert.properties")
+run_names = ("read_insert.properties",)
 
 load_threads = 4  # Use 4 threads for loading
 run_threads = 1  # Use 1 thread for running workload
 
-# Merge policies you are testing, key is the file name for log, value is the policy name and
-# parameters for creating the dataset
-policies = {
-    # No merge policy
-    "no-merge": (
-        "no-merge",
-        None
-    ),
-    # Constant policy, K=5
-    "const-5": (
-        "constant",
-        {
-            "num-components": 5
-        }
-    ),
-    # Prefix policy, 4 components, max size 128MB
-    "prefix-4-128MB": (
-        "prefix",
-        {
-            "max-tolerance-component-count": 4,
-            "max-mergable-component-size": 134217728,
-        }
-    ),
-}
+### Modify the above parameters ###
+
+
+dir_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
 # Path of AsterixDB on server
-asterixdb = "~/asterixdb/opt/local"
+asterixdb = os.path.join(dir_path, "asterix-server", "opt", "local")
 
 
 # You may comment the 2 call function for start_server and stop_server if you don't want restart the database
@@ -69,11 +50,6 @@ def stop_server():
 
     pass
 
-
-### Modify the above parameters ###
-
-
-dir_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
 ycsb = os.path.join(dir_path, "ycsb-0.14.0-SNAPSHOT", "bin", "ycsb")
 logs_dir = os.path.join(dir_path, "ycsb_logs")
@@ -156,26 +132,10 @@ def paras_to_str(paras):
     return ",".join(ret)
 
 
-def create_table(name, paras):
-    if paras is not None:
-        cmd = """USE ycsb;
-CREATE DATASET usertable (usertype)
-    PRIMARY KEY YCSB_KEY
-    WITH {
-        "merge-policy":{
-            "name":""" + "\"" + name + "\"" + """,
-            "parameters":{""" + paras_to_str(paras) + """}
-        }
-    };"""
-    else:
-        cmd = """USE ycsb;
-CREATE DATASET usertable (usertype)
-    PRIMARY KEY YCSB_KEY
-    WITH {
-        "merge-policy":{
-            "name":""" + "\"" + name + "\"" + """
-        }
-    };"""
+def create_table():
+    cmd = """USE ycsb;
+    CREATE DATASET usertable (usertype)
+        PRIMARY KEY YCSB_KEY;"""
     return exe_sqlpp(cmd)
 
 
@@ -241,7 +201,48 @@ def run(filename, run_path, records):
     call(cmd, shell=True)
 
 
-def run_exp(filename, policy):
+def zip_log(zip_path, file_path):
+    with zipfile.ZipFile(zip_path, "w") as z:
+        z.write(file_path, os.path.basename(file_path), zipfile.ZIP_DEFLATED)
+    z.close()
+    os.remove(file_path)
+
+
+def grep_logs(path_prefix):
+    merge_file = open(path_prefix + "_merge.txt", "w")
+    search0_file = open(path_prefix + "_search0.txt", "w")
+    search1_file = open(path_prefix + "_search1.txt", "w")
+
+    for log_name in ("red-service.log", "cc.log"):
+        log_path = os.path.join(asterixdb, "logs", log_name)
+        with open(log_path, "r", encoding="utf-8") as inf:
+            for line in inf:
+                if "[MERGE]" in line:
+                    line = line.replace("\r", "")
+                    idx = line.index("[MERGE]")
+                    line = line[idx-24:]
+                    merge_file.write(line)
+                if "[SEARCH]\t0" in line:
+                    line = line.replace("\r", "")
+                    idx = line.index("[SEARCH]")
+                    line = line[idx-24:]
+                    search0_file.write(line)
+                if "[SEARCH]\t1" in line:
+                    line = line.replace("\r", "")
+                    idx = line.index("[SEARCH]")
+                    line = line[idx-24:]
+                    search1_file.write(line)
+        inf.close()
+    merge_file.close()
+    search0_file.close()
+    search1_file.close()
+
+    zip_log(path_prefix + "_merge.zip", path_prefix + "_merge.txt")
+    zip_log(path_prefix + "_search0.zip", path_prefix + "_search0.txt")
+    zip_log(path_prefix + "_search1.zip", path_prefix + "_search1.txt")
+
+
+def run_exp(filename):
     print("Start " + filename)
 
     # Stop server if necessary
@@ -258,7 +259,7 @@ def run_exp(filename, policy):
         print("Failed to create type", file=sys.stderr)
         return False
     print("Created type")
-    if not create_table(policy[0], policy[1]):
+    if not create_table():
         print("Failed to create table", file=sys.stderr)
         return False
     print("Created table")
@@ -289,12 +290,13 @@ def run_exp(filename, policy):
 
         base = get_base_name(run_path)
         print("Run " + base)
-        run(filename, run_path,records)
+        run(filename, run_path, records)
         print("Finished run " + base)
+
+    grep_logs(os.path.join(logs_dir, "server_prefix"))
 
     print("Done " + filename)
 
 
 if __name__ == "__main__":
-    for filename, policy in policies.items():
-        run_exp(filename, policy)
+    run_exp("prefix")
