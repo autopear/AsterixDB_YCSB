@@ -106,6 +106,21 @@ def exe_sqlpp(cmd):
         return False
 
 
+def get_records():
+    cmd = "USE ycsb; SELECT COUNT(*) AS cnt FROM usertable;"
+    r = requests.post(query_url, data={"statement": cmd})
+    if r.status_code == 200:
+        for line in r.content.decode("utf-8").split("\n"):
+            line = line.strip().replace("\r", "").replace(" ", "")
+            if line.startswith("\"results\":[{\"cnt\":"):
+                line = line.replace("\"results\":[{\"cnt\":", "").replace("}", "")
+                return int(line)
+        return 0
+    else:
+        print("Error: " + r.reason + "" + cmd)
+        return -1
+
+
 def create_dataverse():
     cmd = """DROP DATAVERSE ycsb IF EXISTS;
 CREATE DATAVERSE ycsb;"""
@@ -213,16 +228,16 @@ def load(filename):
     call(cmd, shell=True)
 
 
-def run(filename, run_path):
+def run(filename, run_path, records):
     base = get_base_name(run_path)
     if run_threads == 1:
-        cmd = interpreter + " \"" + ycsb + "\" run asterixdb -P \"" + run_path + "\" -p exportfile=\"" + \
-              os.path.join(logs_dir, filename + "." + base + ".txt") + "\" -s > \"" + \
+        cmd = interpreter + " \"" + ycsb + "\" run asterixdb -P \"" + run_path + "\" -p recordcount=" + str(records) + \
+              " -p exportfile=\"" + os.path.join(logs_dir, filename + "." + base + ".txt") + "\" -s > \"" + \
               os.path.join(logs_dir, filename + "." + base + ".log") + "\""
     else:
-        cmd = interpreter + " \"" + ycsb + "\" run asterixdb -P \"" + run_path + "\" -p exportfile=\"" + \
-              os.path.join(logs_dir, filename + "." + base + ".txt") + "\" -s -threads " + str(run_threads) + \
-              " > \"" + os.path.join(logs_dir, filename + "." + base + ".log") + "\""
+        cmd = interpreter + " \"" + ycsb + "\" run asterixdb -P \"" + run_path + "\" -p recordcount=" + str(records) + \
+              " -p exportfile=\"" + os.path.join(logs_dir, filename + "." + base + ".txt") + "\" -s " + \
+              "-threads " + str(run_threads) + " > \"" + os.path.join(logs_dir, filename + "." + base + ".log") + "\""
     call(cmd, shell=True)
 
 
@@ -257,6 +272,8 @@ def run_exp(filename, policy):
 
     load(filename)
 
+    records = get_records()
+
     for run_path in run_paths:
         # Stop server if necessary
         stop_server()
@@ -272,7 +289,7 @@ def run_exp(filename, policy):
 
         base = get_base_name(run_path)
         print("Run " + base)
-        run(filename, run_path)
+        run(filename, run_path,records)
         print("Finished run " + base)
 
     print("Done " + filename)
