@@ -4,12 +4,13 @@ import os
 import requests
 import sys
 from subprocess import call
+from __future__ import print_function
 
 ### Modify the below parameters ###
 
 # You may need to modify feed configuration in create_feed() if you don't use localhost
 
-interpreter = "python3.5"  # Python interpreter to run YCSB
+interpreter = "python2.7"  # Python interpreter to run YCSB
 
 load_name = "load.properties"
 
