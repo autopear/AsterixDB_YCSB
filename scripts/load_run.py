@@ -103,7 +103,7 @@ def exe_sqlpp(cmd):
     if r.status_code == 200:
         return True
     else:
-        print("Error: " + r.reason + "" + cmd)
+        print("Error: " + r.reason + "\n" + cmd, file=sys.stderr)
         return False
 
 
@@ -118,7 +118,7 @@ def get_records():
                 return int(line)
         return 0
     else:
-        print("Error: " + r.reason + "" + cmd)
+        print("Error: " + r.reason + "\n" + cmd, file=sys.stderr)
         return -1
 
 
