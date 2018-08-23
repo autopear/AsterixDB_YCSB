@@ -86,7 +86,7 @@ if [ -z "$JAVACMD" ] ; then
   fi
 fi
 
-export JAVA_VERSION=$(java -version 2>&1 | head -1 | awk '{ print $NF }' | tr -d '"')
+export JAVA_VERSION=$(java -version 2>&1 | head -1 | awk '{ print $3 }' | tr -d '"')
 case $JAVA_VERSION in
   1.8*|1.9*|10*|11*)
     ;;
@@ -142,5 +142,5 @@ rm /tmp/$$_pids
 echo "INFO: Starting sample cluster..."
 "$INSTALLDIR/bin/asterixncservice" -logdir - >> "$LOGSDIR/red-service.log" 2>&1 &
 "$INSTALLDIR/bin/asterixcc" -config-file "$CLUSTERDIR/conf/cc.conf" >> "$LOGSDIR/cc.log" 2>&1 &
-"$INSTALLDIR/bin/asterixhelper" wait_for_cluster -timeout 90
+"$INSTALLDIR/bin/asterixhelper" wait_for_cluster -timeout 60
 exit $?

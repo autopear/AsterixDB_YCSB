@@ -555,6 +555,16 @@ Commons Math (org.apache.commons:commons-math:2.1)
       sources enumerated above at the time of code translation are in the LICENSE.txt
       file.
 
+Apache Commons Math (org.apache.commons:commons-math3:3.6.1)
+- repo/commons-math3-3.6.1.jar
+
+      Apache Commons Math
+      Copyright 2001-2016 The Apache Software Foundation
+
+      This product includes software developed for Orekit by
+      CS Systèmes d'Information (http://www.c-s.fr/)
+      Copyright 2010-2012 CS Systèmes d'Information
+
 Commons Net (commons-net:commons-net:3.1)
 - repo/commons-net-3.1.jar
 
@@ -732,6 +742,12 @@ Java Servlet API (javax.servlet:servlet-api:2.5)
       You may obtain Java Servlet API in Source Code form code here:
           https://repo.maven.apache.org/maven2/javax/servlet/servlet-api/2.5/servlet-api-2.5-sources.jar
 
+JavaBeans Activation Framework (com.sun.activation:javax.activation:1.2.0)
+- repo/javax.activation-1.2.0.jar
+
+      You may obtain JavaBeans Activation Framework in Source Code form code here:
+          https://repo.maven.apache.org/maven2/com/sun/activation/javax.activation/1.2.0/javax.activation-1.2.0-sources.jar
+
 Jersey Test Framework - Core (com.sun.jersey.jersey-test-framework:jersey-test-framework-core:1.9)
 - repo/jersey-test-framework-core-1.9.jar
 
@@ -743,6 +759,12 @@ Jersey Test Framework - Grizzly 2 Module (com.sun.jersey.jersey-test-framework:j
 
       You may obtain Jersey Test Framework - Grizzly 2 Module in Source Code form code here:
           https://repo.maven.apache.org/maven2/com/sun/jersey/jersey-test-framework/jersey-test-framework-grizzly2/1.9/jersey-test-framework-grizzly2-1.9-sources.jar
+
+Old JAXB Core (com.sun.xml.bind:jaxb-core:2.3.0)
+- repo/jaxb-core-2.3.0.jar
+
+      You may obtain Old JAXB Core in Source Code form code here:
+          https://repo.maven.apache.org/maven2/com/sun/xml/bind/jaxb-core/2.3.0/jaxb-core-2.3.0-sources.jar
 
 Old JAXB Runtime (com.sun.xml.bind:jaxb-impl:2.3.0)
 - repo/jaxb-impl-2.3.0.jar

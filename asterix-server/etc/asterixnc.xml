@@ -59,6 +59,12 @@
         <relativePath>hyracks-api-0.3.4-SNAPSHOT.jar</relativePath>
       </dependency>
       <dependency>
+        <groupId>org.apache.logging.log4j</groupId>
+        <artifactId>log4j-core</artifactId>
+        <version>2.10.0</version>
+        <relativePath>log4j-core-2.10.0.jar</relativePath>
+      </dependency>
+      <dependency>
         <groupId>org.apache.hyracks</groupId>
         <artifactId>hyracks-control-nc</artifactId>
         <version>0.3.4-SNAPSHOT</version>
@@ -239,6 +245,12 @@
         <relativePath>hyracks-storage-am-lsm-common-0.3.4-SNAPSHOT.jar</relativePath>
       </dependency>
       <dependency>
+        <groupId>org.apache.commons</groupId>
+        <artifactId>commons-math3</artifactId>
+        <version>3.6.1</version>
+        <relativePath>commons-math3-3.6.1.jar</relativePath>
+      </dependency>
+      <dependency>
         <groupId>org.apache.asterix</groupId>
         <artifactId>asterix-runtime</artifactId>
         <version>0.9.4-SNAPSHOT</version>
@@ -299,6 +311,24 @@
         <relativePath>log4j-jul-2.10.0.jar</relativePath>
       </dependency>
       <dependency>
+        <groupId>org.apache.hyracks</groupId>
+        <artifactId>hyracks-storage-am-rtree</artifactId>
+        <version>0.3.4-SNAPSHOT</version>
+        <relativePath>hyracks-storage-am-rtree-0.3.4-SNAPSHOT.jar</relativePath>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.hyracks</groupId>
+        <artifactId>hyracks-storage-am-lsm-rtree</artifactId>
+        <version>0.3.4-SNAPSHOT</version>
+        <relativePath>hyracks-storage-am-lsm-rtree-0.3.4-SNAPSHOT.jar</relativePath>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.hyracks</groupId>
+        <artifactId>hyracks-storage-am-lsm-invertedindex</artifactId>
+        <version>0.3.4-SNAPSHOT</version>
+        <relativePath>hyracks-storage-am-lsm-invertedindex-0.3.4-SNAPSHOT.jar</relativePath>
+      </dependency>
+      <dependency>
         <groupId>org.apache.asterix</groupId>
         <artifactId>asterix-common</artifactId>
         <version>0.9.4-SNAPSHOT</version>
@@ -311,12 +341,6 @@
         <relativePath>hyracks-storage-am-bloomfilter-0.3.4-SNAPSHOT.jar</relativePath>
       </dependency>
       <dependency>
-        <groupId>org.apache.hyracks</groupId>
-        <artifactId>hyracks-storage-am-lsm-rtree</artifactId>
-        <version>0.3.4-SNAPSHOT</version>
-        <relativePath>hyracks-storage-am-lsm-rtree-0.3.4-SNAPSHOT.jar</relativePath>
-      </dependency>
-      <dependency>
         <groupId>com.fasterxml.jackson.core</groupId>
         <artifactId>jackson-annotations</artifactId>
         <version>2.8.4</version>
@@ -324,9 +348,21 @@
       </dependency>
       <dependency>
         <groupId>com.sun.xml.bind</groupId>
+        <artifactId>jaxb-core</artifactId>
+        <version>2.3.0</version>
+        <relativePath>jaxb-core-2.3.0.jar</relativePath>
+      </dependency>
+      <dependency>
+        <groupId>com.sun.xml.bind</groupId>
         <artifactId>jaxb-impl</artifactId>
         <version>2.3.0</version>
         <relativePath>jaxb-impl-2.3.0.jar</relativePath>
+      </dependency>
+      <dependency>
+        <groupId>com.sun.activation</groupId>
+        <artifactId>javax.activation</artifactId>
+        <version>1.2.0</version>
+        <relativePath>javax.activation-1.2.0.jar</relativePath>
       </dependency>
       <dependency>
         <groupId>org.codehaus.mojo.appassembler</groupId>
@@ -731,12 +767,6 @@
         <relativePath>netty-3.6.2.Final.jar</relativePath>
       </dependency>
       <dependency>
-        <groupId>org.apache.hyracks</groupId>
-        <artifactId>hyracks-storage-am-rtree</artifactId>
-        <version>0.3.4-SNAPSHOT</version>
-        <relativePath>hyracks-storage-am-rtree-0.3.4-SNAPSHOT.jar</relativePath>
-      </dependency>
-      <dependency>
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-collections4</artifactId>
         <version>4.1</version>
@@ -899,12 +929,6 @@
         <relativePath>hyracks-util-0.3.4-SNAPSHOT.jar</relativePath>
       </dependency>
       <dependency>
-        <groupId>org.apache.logging.log4j</groupId>
-        <artifactId>log4j-core</artifactId>
-        <version>2.10.0</version>
-        <relativePath>log4j-core-2.10.0.jar</relativePath>
-      </dependency>
-      <dependency>
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-text</artifactId>
         <version>1.2</version>
@@ -921,12 +945,6 @@
         <artifactId>asterix-fuzzyjoin</artifactId>
         <version>0.9.4-SNAPSHOT</version>
         <relativePath>asterix-fuzzyjoin-0.9.4-SNAPSHOT.jar</relativePath>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.hyracks</groupId>
-        <artifactId>hyracks-storage-am-lsm-invertedindex</artifactId>
-        <version>0.3.4-SNAPSHOT</version>
-        <relativePath>hyracks-storage-am-lsm-invertedindex-0.3.4-SNAPSHOT.jar</relativePath>
       </dependency>
       <dependency>
         <groupId>org.apache.asterix</groupId>
