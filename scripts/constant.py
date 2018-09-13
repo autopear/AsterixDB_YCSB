@@ -19,8 +19,7 @@ read_name = "read.properties"
 load_threads = 4  # Use 4 threads for loading
 read_threads = 1  # Use 1 thread for running workload
 
-tasks = ("l", "l",
-         "l", "l")
+tasks = ["l", "r"] * 100
 
 ks = (10,)
 
@@ -209,7 +208,7 @@ def wait_merge(k):
     while True:
         cnt = len(glob.glob(os.path.join(asterixdb, "data", "red", "storage", "partition_0", "ycsb", "usertable",
                                          "0", "usertable", "*_b")))
-        if cnt == k:
+        if cnt <= k:
             return
         else:
             time.sleep(5)
@@ -222,44 +221,46 @@ def zip_log(zip_path, file_path):
     os.remove(file_path)
 
 
-def grep_logs(name, k):
+def grep_logs(name, k, records):
     flushn = name + "_flushes" + str(k) + ".csv"
     mergen = name + "_merges_" + str(k) + ".csv"
     readn = name + "_reads_" + str(k) + ".csv"
 
-    flushf = open(os.path.join(logs_dir, flushn), "w")
-    mergef = open(os.path.join(logs_dir, mergen), "w")
-    readf = open(os.path.join(logs_dir, readn), "w")
+    flushf = open(os.path.join(logs_dir, flushn), "a")
+    mergef = open(os.path.join(logs_dir, mergen), "a")
+    readf = open(os.path.join(logs_dir, readn), "a")
 
     for logp in glob.glob(os.path.join(asterixdb, "logs", "*.gz")):
         with gzip.open(logp, "rt") as inf:
             for line in inf:
                 if "[FLUSH]" in line:
-                    flushf.write(line[line.index("[FLUSH]")+8:].replace("\r", ""))
+                    flushf.write(str(records) + "," + line[line.index("[FLUSH]")+8:].replace("\r", ""))
                 if "[MERGE]" in line:
-                    mergef.write(line[line.index("[MERGE]")+8:].replace("\r", ""))
+                    mergef.write(str(records) + "," + line[line.index("[MERGE]")+8:].replace("\r", ""))
                 if "[SEARCH]" in line:
-                    readf.write(line[line.index("[SEARCH]")+9:].replace("\r", ""))
+                    readf.write(str(records) + "," + line[line.index("[SEARCH]")+9:].replace("\r", ""))
         inf.close()
+        try:
+            os.remove(logp)
+        except:
+            pass
 
     for logp in glob.glob(os.path.join(asterixdb, "logs", "*.log")):
         with io.open(logp, "r", encoding="utf-8") as inf:
             for line in inf:
                 if "[FLUSH]" in line:
-                    flushf.write(line[line.index("[FLUSH]")+8:].replace("\r", ""))
+                    flushf.write(str(records) + "," + line[line.index("[FLUSH]")+8:].replace("\r", ""))
                 if "[MERGE]" in line:
-                    mergef.write(line[line.index("[MERGE]")+8:].replace("\r", ""))
+                    mergef.write(str(records) + "," + line[line.index("[MERGE]")+8:].replace("\r", ""))
                 if "[SEARCH]" in line:
-                    readf.write(line[line.index("[SEARCH]")+9:].replace("\r", ""))
+                    readf.write(str(records) + "," + line[line.index("[SEARCH]")+9:].replace("\r", ""))
         inf.close()
+        emptyf = open(logp, "w")
+        emptyf.close()
 
     flushf.close()
     mergef.close()
     readf.close()
-
-    zip_log(os.path.join(logs_dir, flushn + ".zip"), os.path.join(logs_dir, flushn))
-    zip_log(os.path.join(logs_dir, mergen + ".zip"), os.path.join(logs_dir, mergen))
-    zip_log(os.path.join(logs_dir, readn + ".zip"), os.path.join(logs_dir, readn))
 
 
 def reset():
@@ -298,20 +299,44 @@ def run_exp(k):
         return False
     print("Feed started")
 
+    name = "constant"
+
+    flushn = name + "_flushes" + str(k) + ".csv"
+    mergen = name + "_merges_" + str(k) + ".csv"
+    readn = name + "_reads_" + str(k) + ".csv"
+
+    try:
+        os.remove(flushn)
+    except:
+        pass
+    try:
+        os.remove(mergen)
+    except:
+        pass
+    try:
+        os.remove(readn)
+    except:
+        pass
+
     for t in tasks:
+        records = get_records()
         if t == "l":
             print("Loading...")
-            load(get_records())
+            load(records)
             wait_merge(k)
+            grep_logs(name, k, records)
             print("Load done")
         elif t == "r":
             print("Reading...")
-            read(get_records())
+            read(records)
+            grep_logs(name, k, records)
             print("Read done")
         else:
             pass
 
-    grep_logs(k)
+    zip_log(os.path.join(logs_dir, flushn + ".zip"), os.path.join(logs_dir, flushn))
+    zip_log(os.path.join(logs_dir, mergen + ".zip"), os.path.join(logs_dir, mergen))
+    zip_log(os.path.join(logs_dir, readn + ".zip"), os.path.join(logs_dir, readn))
 
     stop_server()
 
