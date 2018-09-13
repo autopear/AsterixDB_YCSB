@@ -28,7 +28,7 @@ try:
     mod = __import__('argparse')
     import argparse
 except ImportError:
-    sys.stderr.write("[ERROR] argparse not found. Try installing it via \"pip\".")
+    print >> sys.stderr, '[ERROR] argparse not found. Try installing it via "pip".'
     exit(1)
 
 BASE_URL = "https://github.com/brianfrankcooper/YCSB/tree/master/"
@@ -118,35 +118,26 @@ OPTIONS = {
 
 def usage():
     output = io.BytesIO()
-    line = "%s command database [options]" % sys.argv[0]
-    output.write(line.encode("utf-8"))
+    print >> output, "%s command database [options]" % sys.argv[0]
 
-    line = "\nCommands:"
-    output.write(line.encode("utf-8"))
-
+    print >> output, "\nCommands:"
     for command in sorted(COMMANDS.keys()):
-        line = "    %s %s" % (command.ljust(14), COMMANDS[command]["description"])
-        output.write(line.encode("utf-8"))
+        print >> output, "    %s %s" % (command.ljust(14),
+                                        COMMANDS[command]["description"])
 
-    line = "\nDatabases:"
-    output.write(line.encode("utf-8"))
-
+    print >> output, "\nDatabases:"
     for db in sorted(DATABASES.keys()):
-        line = "    %s %s" % (db.ljust(14), BASE_URL + db.split("-")[0])
-        output.write(line.encode("utf-8"))
+        print >> output, "    %s %s" % (db.ljust(14), BASE_URL +
+                                        db.split("-")[0])
 
-    line = "\nOptions:"
-    output.write(line.encode("utf-8"))
-
+    print >> output, "\nOptions:"
     for option in sorted(OPTIONS.keys()):
-        line = "    %s %s" % (option.ljust(14), OPTIONS[option])
-        output.write(line.encode("utf-8"))
+        print >> output, "    %s %s" % (option.ljust(14), OPTIONS[option])
 
-    line = """\nWorkload Files:
+    print >> output, """\nWorkload Files:
     There are various predefined workloads under workloads/ directory.
     See https://github.com/brianfrankcooper/YCSB/wiki/Core-Properties
     for the list of workload properties."""
-    output.write(line.encode("utf-8"))
 
     return output.getvalue()
 
@@ -187,13 +178,13 @@ def check_output(*popenargs, **kwargs):
     return output
 
 def debug(message):
-    sys.stderr.write("[DEBUG] " + message)
+    print >> sys.stderr, "[DEBUG] ", message
 
 def warn(message):
-    sys.stderr.write("[WARN] " + message)
+    print >> sys.stderr, "[WARN] ", message
 
 def error(message):
-    sys.stderr.write("[ERROR] " + message)
+    print >> sys.stderr, "[ERROR] ", message
 
 def find_jars(dir, glob='*.jar'):
     jars = []
@@ -230,7 +221,7 @@ def get_classpath_from_maven(module):
         # the last module will be the datastore binding
         line = [x for x in mvn_output.splitlines() if x.startswith("classpath=")][-1:]
         return line[0][len("classpath="):]
-    except subprocess.CalledProcessError as err:
+    except subprocess.CalledProcessError, err:
         error("Attempting to generate a classpath from Maven failed "
               "with return code '" + str(err.returncode) + "'. The output from "
               "Maven follows, try running "
@@ -338,7 +329,7 @@ def main():
                      main_classname, "-db", db_classname] + remaining)
     if command:
         ycsb_command.append(command)
-    sys.stderr.write(" ".join(ycsb_command))
+    print >> sys.stderr, " ".join(ycsb_command)
     try:
         return subprocess.call(ycsb_command)
     except OSError as e:
