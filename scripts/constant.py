@@ -19,9 +19,9 @@ read_name = "read.properties"
 load_threads = 4  # Use 4 threads for loading
 read_threads = 1  # Use 1 thread for running workload
 
-tasks = ["l", "r"] * 100
+tasks = ["l", "r"] * 50
 
-ks = (10,)
+ks = (3, 5, 6, 8, 10)
 
 dir_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
@@ -222,7 +222,7 @@ def zip_log(zip_path, file_path):
 
 
 def grep_logs(name, k, records):
-    flushn = name + "_flushes" + str(k) + ".csv"
+    flushn = name + "_flushes_" + str(k) + ".csv"
     mergen = name + "_merges_" + str(k) + ".csv"
     readn = name + "_reads_" + str(k) + ".csv"
 
@@ -301,28 +301,22 @@ def run_exp(k):
 
     name = "constant"
 
-    flushn = name + "_flushes" + str(k) + ".csv"
+    flushn = name + "_flushes_" + str(k) + ".csv"
     mergen = name + "_merges_" + str(k) + ".csv"
     readn = name + "_reads_" + str(k) + ".csv"
 
-    try:
-        os.remove(flushn)
-    except:
-        pass
-    try:
-        os.remove(mergen)
-    except:
-        pass
-    try:
-        os.remove(readn)
-    except:
-        pass
+    for n in (flushn, mergen, readn):
+        try:
+            os.remove(os.path.join(logs_dir, n))
+        except:
+            pass
 
     for t in tasks:
         records = get_records()
         if t == "l":
             print("Loading...")
             load(records)
+            time.sleep(30)
             wait_merge(k)
             grep_logs(name, k, records)
             print("Load done")
