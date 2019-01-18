@@ -72,7 +72,7 @@ if "%JAVACMD%"=="" set JAVACMD=java
 
 if "%REPO%"=="" set REPO=%BASEDIR%\lib
 
-set CLASSPATH="%BASEDIR%"\etc;"%REPO%"\args4j-2.33.jar;"%REPO%"\appassembler-booter-2.0.0.jar;"%REPO%"\appassembler-model-2.0.0.jar;"%REPO%"\plexus-utils-3.0.24.jar;"%REPO%"\stax-utils-20060502.jar;"%REPO%"\stax-1.1.1-dev.jar;"%REPO%"\stax-api-1.0.1.jar;"%REPO%"\commons-io-2.6.jar;"%REPO%"\jackson-databind-2.8.4.jar;"%REPO%"\jackson-annotations-2.8.4.jar;"%REPO%"\jackson-core-2.8.4.jar;"%REPO%"\asterix-client-helper-0.9.4-SNAPSHOT.jar
+set CLASSPATH="%BASEDIR%"\etc;"%REPO%"\args4j-2.33.jar;"%REPO%"\appassembler-booter-2.0.0.jar;"%REPO%"\appassembler-model-2.0.0.jar;"%REPO%"\plexus-utils-3.0.24.jar;"%REPO%"\stax-utils-20060502.jar;"%REPO%"\stax-1.1.1-dev.jar;"%REPO%"\stax-api-1.0.1.jar;"%REPO%"\commons-io-2.6.jar;"%REPO%"\jackson-databind-2.9.7.jar;"%REPO%"\jackson-annotations-2.9.7.jar;"%REPO%"\jackson-core-2.9.7.jar;"%REPO%"\asterix-client-helper-0.9.5-SNAPSHOT.jar
 
 set ENDORSED_DIR=
 if NOT "%ENDORSED_DIR%" == "" set CLASSPATH="%BASEDIR%"\%ENDORSED_DIR%\*;%CLASSPATH%

@@ -142,5 +142,5 @@ rm /tmp/$$_pids
 echo "INFO: Starting sample cluster..."
 "$INSTALLDIR/bin/asterixncservice" -logdir - >> "$LOGSDIR/red-service.log" 2>&1 &
 "$INSTALLDIR/bin/asterixcc" -config-file "$CLUSTERDIR/conf/cc.conf" >> "$LOGSDIR/cc.log" 2>&1 &
-"$INSTALLDIR/bin/asterixhelper" wait_for_cluster -timeout 60
+"$INSTALLDIR/bin/asterixhelper" wait_for_cluster -timeout 90
 exit $?

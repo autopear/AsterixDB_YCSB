@@ -28,7 +28,7 @@ try:
     mod = __import__('argparse')
     import argparse
 except ImportError:
-    print >> sys.stderr, '[ERROR] argparse not found. Try installing it via "pip".'
+    sys.stderr.write("[ERROR] argparse not found. Try installing it via \"pip\".")
     exit(1)
 
 BASE_URL = "https://github.com/brianfrankcooper/YCSB/tree/master/"
@@ -60,6 +60,7 @@ DATABASES = {
     "arangodb3"     : "com.yahoo.ycsb.db.arangodb.ArangoDBClient",
     "asterixdb"   : "com.yahoo.ycsb.db.asterixdb.AsterixDBClient",
     "asynchbase"   : "com.yahoo.ycsb.db.AsyncHBaseClient",
+    "azurecosmos" : "com.yahoo.ycsb.db.AzureCosmosClient",
     "azuredocumentdb"   : "com.yahoo.ycsb.db.azuredocumentdb.AzureDocumentDBClient",
     "azuretablestorage" : "com.yahoo.ycsb.db.azuretablestorage.AzureClient",
     "basic"        : "com.yahoo.ycsb.BasicDB",
@@ -72,6 +73,7 @@ DATABASES = {
     "dynamodb"     : "com.yahoo.ycsb.db.DynamoDBClient",
     "elasticsearch": "com.yahoo.ycsb.db.ElasticsearchClient",
     "elasticsearch5": "com.yahoo.ycsb.db.elasticsearch5.ElasticsearchClient",
+    "elasticsearch5-rest": "com.yahoo.ycsb.db.elasticsearch5.ElasticsearchRestClient",
     "foundationdb" : "com.yahoo.ycsb.db.foundationdb.FoundationDBClient",
     "geode"        : "com.yahoo.ycsb.db.GeodeClient",
     "googlebigtable"  : "com.yahoo.ycsb.db.GoogleBigtableClient",
@@ -118,26 +120,35 @@ OPTIONS = {
 
 def usage():
     output = io.BytesIO()
-    print >> output, "%s command database [options]" % sys.argv[0]
+    line = "%s command database [options]" % sys.argv[0]
+    output.write(line.encode("utf-8"))
 
-    print >> output, "\nCommands:"
+    line = "\nCommands:"
+    output.write(line.encode("utf-8"))
+
     for command in sorted(COMMANDS.keys()):
-        print >> output, "    %s %s" % (command.ljust(14),
-                                        COMMANDS[command]["description"])
+        line = "    %s %s" % (command.ljust(14), COMMANDS[command]["description"])
+        output.write(line.encode("utf-8"))
 
-    print >> output, "\nDatabases:"
+    line = "\nDatabases:"
+    output.write(line.encode("utf-8"))
+
     for db in sorted(DATABASES.keys()):
-        print >> output, "    %s %s" % (db.ljust(14), BASE_URL +
-                                        db.split("-")[0])
+        line = "    %s %s" % (db.ljust(14), BASE_URL + db.split("-")[0])
+        output.write(line.encode("utf-8"))
 
-    print >> output, "\nOptions:"
+    line = "\nOptions:"
+    output.write(line.encode("utf-8"))
+
     for option in sorted(OPTIONS.keys()):
-        print >> output, "    %s %s" % (option.ljust(14), OPTIONS[option])
+        line = "    %s %s" % (option.ljust(14), OPTIONS[option])
+        output.write(line.encode("utf-8"))
 
-    print >> output, """\nWorkload Files:
+    line = """\nWorkload Files:
     There are various predefined workloads under workloads/ directory.
     See https://github.com/brianfrankcooper/YCSB/wiki/Core-Properties
     for the list of workload properties."""
+    output.write(line.encode("utf-8"))
 
     return output.getvalue()
 
@@ -178,13 +189,13 @@ def check_output(*popenargs, **kwargs):
     return output
 
 def debug(message):
-    print >> sys.stderr, "[DEBUG] ", message
+    sys.stderr.write("[DEBUG] " + message)
 
 def warn(message):
-    print >> sys.stderr, "[WARN] ", message
+    sys.stderr.write("[WARN] " + message)
 
 def error(message):
-    print >> sys.stderr, "[ERROR] ", message
+    sys.stderr.write("[ERROR] " + message)
 
 def find_jars(dir, glob='*.jar'):
     jars = []
@@ -221,7 +232,7 @@ def get_classpath_from_maven(module):
         # the last module will be the datastore binding
         line = [x for x in mvn_output.splitlines() if x.startswith("classpath=")][-1:]
         return line[0][len("classpath="):]
-    except subprocess.CalledProcessError, err:
+    except subprocess.CalledProcessError as err:
         error("Attempting to generate a classpath from Maven failed "
               "with return code '" + str(err.returncode) + "'. The output from "
               "Maven follows, try running "
@@ -329,7 +340,7 @@ def main():
                      main_classname, "-db", db_classname] + remaining)
     if command:
         ycsb_command.append(command)
-    print >> sys.stderr, " ".join(ycsb_command)
+    sys.stderr.write(" ".join(ycsb_command))
     try:
         return subprocess.call(ycsb_command)
     except OSError as e:
