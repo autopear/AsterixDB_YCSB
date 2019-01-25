@@ -72,7 +72,7 @@ if "%JAVACMD%"=="" set JAVACMD=java
 
 if "%REPO%"=="" set REPO=%BASEDIR%\repo
 
-set CLASSPATH="%BASEDIR%"\etc;"%REPO%"\appassembler-booter-2.0.0.jar;"%REPO%"\appassembler-model-2.0.0.jar;"%REPO%"\plexus-utils-3.0.24.jar;"%REPO%"\stax-api-1.0.1.jar;"%REPO%"\stax-1.1.1-dev.jar
+set CLASSPATH="%BASEDIR%"\etc;"%REPO%"\appassembler-booter-2.0.0.jar;"%REPO%"\appassembler-model-2.0.0.jar;"%REPO%"\plexus-utils-3.1.0.jar;"%REPO%"\stax-api-1.0.1.jar;"%REPO%"\stax-1.1.1-dev.jar
 
 set ENDORSED_DIR=
 if NOT "%ENDORSED_DIR%" == "" set CLASSPATH="%BASEDIR%"\%ENDORSED_DIR%\*;%CLASSPATH%
