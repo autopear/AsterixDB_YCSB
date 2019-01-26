@@ -12,7 +12,7 @@ from subprocess import call
 import threading
 
 
-interpreter = "python3.7"  # Python interpreter to run YCSB
+interpreter = "python3.6"  # Python interpreter to run YCSB
 
 dir_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
