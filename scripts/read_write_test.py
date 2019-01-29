@@ -12,7 +12,7 @@ from subprocess import call
 import threading
 
 
-interpreter = "python3.6"  # Python interpreter to run YCSB
+interpreter = "python3"  # Python interpreter to run YCSB
 
 dir_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
@@ -24,10 +24,11 @@ if not os.path.isdir(logs_dir):
 
 
 class YCSB(threading.Thread):
-    def __init__(self, k, workload, num_threads):
+    def __init__(self, k, workload, is_load, num_threads):
         threading.Thread.__init__(self)
         self.k = k
         self.name = workload
+        self.is_load = is_load
         self.num_threads = num_threads
         self.workload = os.path.join(dir_path, "workloads", workload + ".properties")
 
@@ -37,9 +38,14 @@ class YCSB(threading.Thread):
         else:
             thread_str = " -threads " + str(self.num_threads)
         basename = self.name + "_" + str(self.k) + "_"
-        cmd = interpreter + " \"" + ycsb + "\" run asterixdb -P \"" + self.workload + "\"" + \
-              " -p exportfile=\"" + os.path.join(logs_dir, basename + "final.log") + \
-              "\" -s" + thread_str + " > \"" + os.path.join(logs_dir, basename + "realtime.log") + "\""
+        if self.is_load:
+            cmd = interpreter + " \"" + ycsb + "\" load asterixdb -P \"" + self.workload + "\"" + \
+                  " -p exportfile=\"" + os.path.join(logs_dir, basename + "final.log") + \
+                  "\" -s" + thread_str + " > \"" + os.path.join(logs_dir, basename + "realtime.log") + "\""
+        else:
+            cmd = interpreter + " \"" + ycsb + "\" run asterixdb -P \"" + self.workload + "\"" + \
+                  " -p exportfile=\"" + os.path.join(logs_dir, basename + "final.log") + \
+                  "\" -s" + thread_str + " > \"" + os.path.join(logs_dir, basename + "realtime.log") + "\""
         call(cmd, shell=True)
 
 
@@ -281,8 +287,8 @@ def run_exp(k):
         except:
             pass
 
-    thread_write = YCSB(k, "write", 4)
-    thread_read = YCSB(k, "read", 4)
+    thread_write = YCSB(k, "write", True, 4)
+    thread_read = YCSB(k, "read", False, 4)
 
     thread_write.start()
     thread_read.start()
