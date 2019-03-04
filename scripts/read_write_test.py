@@ -23,7 +23,11 @@ if not os.path.isdir(logs_dir):
     os.mkdir(logs_dir)
 
 
-def ycsb_job(k, workload, num_threads, ops):
+def ycsb_job(is_load, k, workload, num_threads, ops):
+    if is_load:
+        load_str = "load"
+    else:
+        load_str = "run"
     if num_threads == 1:
         thread_str = ""
     else:
@@ -33,7 +37,7 @@ def ycsb_job(k, workload, num_threads, ops):
     else:
         ops_str = " -target " + str(ops)
     basename = workload + "_" + str(k) + "_"
-    cmd = interpreter + " \"" + ycsb + "\" run asterixdb -P \"" + \
+    cmd = interpreter + " \"" + ycsb + "\" " + load_str + " asterixdb -P \"" + \
           os.path.join(dir_path, "workloads", workload + ".properties") + "\"" + \
           " -p exportfile=\"" + os.path.join(logs_dir, basename + "final.log") + \
           "\" -s" + thread_str + ops_str + " &> \"" + \
@@ -279,8 +283,9 @@ def run_exp(k):
         except:
             pass
 
-    p_write = mp.Process(target=ycsb_job, args=(k, "write", 4, 0))
-    p_read = mp.Process(target=ycsb_job, args=(k, "read", 4, 1000))
+
+    p_write = mp.Process(target=ycsb_job, args=(True, k, "write", 4, 0))
+    p_read = mp.Process(target=ycsb_job, args=(False, k, "read", 4, 1000))
 
     p_write.start()
     p_read.start()
