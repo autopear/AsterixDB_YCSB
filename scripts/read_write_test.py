@@ -9,10 +9,10 @@ import time
 import zipfile
 import gzip
 from subprocess import call
-import threading
+import multiprocessing as mp
 
 
-interpreter = "python3.6"  # Python interpreter to run YCSB
+interpreter = sys.executable
 
 dir_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
@@ -23,24 +23,22 @@ if not os.path.isdir(logs_dir):
     os.mkdir(logs_dir)
 
 
-class YCSB(threading.Thread):
-    def __init__(self, k, workload, num_threads):
-        threading.Thread.__init__(self)
-        self.k = k
-        self.name = workload
-        self.num_threads = num_threads
-        self.workload = os.path.join(dir_path, "workloads", workload + ".properties")
-
-    def run(self):
-        if self.num_threads == 1:
-            thread_str = ""
-        else:
-            thread_str = " -threads " + str(self.num_threads)
-        basename = self.name + "_" + str(self.k) + "_"
-        cmd = interpreter + " \"" + ycsb + "\" run asterixdb -P \"" + self.workload + "\"" + \
-              " -p exportfile=\"" + os.path.join(logs_dir, basename + "final.log") + \
-              "\" -s" + thread_str + " > \"" + os.path.join(logs_dir, basename + "realtime.log") + "\""
-        call(cmd, shell=True)
+def ycsb_job(k, workload, num_threads, ops):
+    if num_threads == 1:
+        thread_str = ""
+    else:
+        thread_str = " -threads " + str(num_threads)
+    if ops < 1:
+        ops_str = ""
+    else:
+        ops_str = " -target " + str(ops)
+    basename = workload + "_" + str(k) + "_"
+    cmd = interpreter + " \"" + ycsb + "\" run asterixdb -P \"" + \
+          os.path.join(dir_path, "workloads", workload + ".properties") + "\"" + \
+          " -p exportfile=\"" + os.path.join(logs_dir, basename + "final.log") + \
+          "\" -s" + thread_str + ops_str + " &> \"" + \
+          os.path.join(logs_dir, basename + "realtime.log") + "\""
+    call(cmd, shell=True)
 
 
 def start_server():
@@ -281,14 +279,14 @@ def run_exp(k):
         except:
             pass
 
-    thread_write = YCSB(k, "write", 4)
-    thread_read = YCSB(k, "read", 4)
+    p_write = mp.Process(target=ycsb_job, args=(k, "write", 4, 0))
+    p_read = mp.Process(target=ycsb_job, args=(k, "read", 4, 1000))
 
-    thread_write.start()
-    thread_read.start()
+    p_write.start()
+    p_read.start()
 
-    thread_write.join()
-    thread_read.join()
+    p_write.join()
+    p_read.join()
 
     wait_merge(k)
     grep_logs(k)
