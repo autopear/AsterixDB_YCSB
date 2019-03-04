@@ -99,11 +99,14 @@ if [ -z "$JAVACMD" ] ; then
     JAVACMD=`which java`
   fi
 fi
-"$JAVACMD" -version 2>&1 | grep -q '1\.[89]' || {
-  echo "JAVA_HOME must be at version 1.8 or later:"
-  "$JAVACMD" -version
+export JAVA_VERSION=$($JAVACMD -version 2>&1 | head -1 | awk '{ print $3 }' | tr -d '"')
+case $JAVA_VERSION in
+  1.8*|1.9*|10*|11*)
+    ;;
+  *)
+  echo JAVA_HOME must be at version 1.8 or later, but is: $JAVA_VERSION
   exit 2
-}
+esac
 DIRNAME=$(dirname "$0")
 [ $(echo $DIRNAME | wc -l) -ne 1 ] && {
   echo "Paths with spaces are not supported"
@@ -117,7 +120,7 @@ if [ $? -ne 1 ]; then
   "$INSTALLDIR/bin/asterixhelper" shutdown_cluster_all
   first=1
   tries=0
-  echo -n "INFO: Waiting up to 180s for cluster to shutdown"
+  echo -n "INFO: Waiting up to 60s for cluster to shutdown"
   while [ -n "$(ps -ef | grep 'java.*org\.apache\.hyracks\.control\.[cn]c\.\([CN]CDriver\|service\.NCService\)')" ]; do
     if [ $tries -ge 180 ]; then
       echo "...timed out!"
