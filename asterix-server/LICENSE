@@ -6867,9 +6867,8 @@ MIT===
        in: repo/asterix-app-0.9.5-SNAPSHOT.jar, within this assembly
        located at:
          webui/static/js/jquery.min.js,
-         webui/static/js/jquery.autosize-min.js,
        and
-         queryui/js/jquery-1.12.4.min.js
+         webui/static/js/jquery.autosize-min.js
 
    are available under an MIT-style license:
 ---
