@@ -1,1 +1,4 @@
 /ycsb_logs/
+/asterix-server/opt/local/data
+/asterix-server/opt/local/logs
+/logs/*

@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 import os
 import io
@@ -10,20 +10,25 @@ import zipfile
 import gzip
 from subprocess import call
 
+if len(sys.argv) != 4:
+    print("Usage: {} policy k dist".format(os.path.basename(__file__)))
+    sys.exit(-1)
 
-interpreter = "python2.7"  # Python interpreter to run YCSB
+interpreter = sys.executable
 
 load_name = "load.properties"
-read_name = "read.properties"
 
-load_threads = 4  # Use 4 threads for loading
-read_threads = 1  # Use 1 thread for running workload
-
-tasks = ["l", "r"] * 50
-
-ks = (3, 5, 6, 8, 10)
+load_threads = 2  # Use 4 threads for loading
 
 dir_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+
+user_policy = str(sys.argv[1])
+user_k = int(sys.argv[2])
+user_dist = str(sys.argv[3])
+
+if user_dist != "uniform" and user_dist != "zipfian" and user_dist != "latest" and user_dist != "binomial":
+    print("Dist: uniform zipfian latest binomial")
+    sys.exit(-1)
 
 # Path of AsterixDB on server
 asterixdb = os.path.join(dir_path, "asterix-server", "opt", "local")
@@ -37,13 +42,88 @@ def stop_server():
     call("\"" + asterixdb + "/bin/stop-sample-cluster.sh\" -f", shell=True)
 
 
+def read_count(f):
+    with open(f, "r") as inf:
+        for line in inf:
+            if line.startswith("insertcount="):
+                line = line.replace("insertcount=", "").replace("\r", "").replace("\n", "").strip()
+                c = int(line)
+    inf.close()
+    return c
+
+
+def get_policy():
+    if user_policy == "binomial":
+        return """CREATE DATASET usertable (usertype)
+PRIMARY KEY YCSB_KEY
+WITH {
+    "merge-policy":{
+        "name":"binomial",
+        "parameters":{
+            "num-components":""" + str(user_k) + """
+        }
+    }
+};"""
+    elif user_policy == "min-latency":
+        return """CREATE DATASET usertable (usertype)
+PRIMARY KEY YCSB_KEY
+WITH {
+    "merge-policy":{
+        "name":"min-latency",
+        "parameters":{
+            "num-components":""" + str(user_k) + """
+        }
+    }
+};"""
+    elif user_policy == "google-default":
+        return """CREATE DATASET usertable (usertype)
+PRIMARY KEY YCSB_KEY
+WITH {
+    "merge-policy":{
+        "name":"google-default",
+        "parameters":{
+            "num-components":""" + str(user_k) + """
+        }
+    }
+};"""
+    elif user_policy == "exploring":
+        if user_k <= 6:
+            return """CREATE DATASET usertable (usertype)
+PRIMARY KEY YCSB_KEY
+WITH {
+    "merge-policy":{
+        "name":"exploring",
+        "parameters":{
+            "lambda":1.2,
+            "min":2,
+            "max":""" + str(user_k) + """
+        }
+    }
+};"""
+        else:
+            return """CREATE DATASET usertable (usertype)
+PRIMARY KEY YCSB_KEY
+WITH {
+    "merge-policy":{
+        "name":"exploring",
+        "parameters":{
+            "lambda":1.2,
+            "min":3,
+            "max":""" + str(user_k) + """
+        }
+    }
+};"""
+    else:
+        return ""
+
+
 ycsb = os.path.join(dir_path, "ycsb-asterixdb-binding-0.16.0-SNAPSHOT", "bin", "ycsb")
 logs_dir = os.path.join(dir_path, "logs")
 if not os.path.isdir(logs_dir):
     os.mkdir(logs_dir)
 
 load_path = os.path.join(dir_path, "workloads", load_name)
-read_path = os.path.join(dir_path, "workloads", read_name)
+load_cnt = read_count(load_path)
 
 query_url = ""
 feed_port = 0
@@ -59,12 +139,20 @@ with io.open(load_path, "r") as inf:
 inf.close()
 
 
+def parser_query(q):
+    r = q.replace("\n", " ")
+    while "  " in r:
+        r = r.replace("  ", " ")
+    return r
+
+
 def exe_sqlpp(cmd):
-    r = requests.post(query_url, data={"statement": cmd})
+    pcmd = parser_query(cmd)
+    r = requests.post(query_url, data={"statement": pcmd})
     if r.status_code == 200:
         return True
     else:
-        print("Error: " + r.reason + "" + cmd)
+        print("Error: " + r.reason + "" + pcmd)
         return False
 
 
@@ -107,29 +195,8 @@ CREATE TYPE usertype AS CLOSED {
     return exe_sqlpp(cmd)
 
 
-def paras_to_str(paras):
-    ret = []
-    for k in sorted(paras.keys()):
-        v = paras[k]
-        if type(v) == str:
-            ret.append("\"" + k + "\":\"" + v + "\"")
-        else:
-            ret.append("\"" + k + "\":" + str(v))
-    return ",".join(ret)
-
-
-def create_table(k):
-    cmd = """USE ycsb;
-CREATE DATASET usertable (usertype)
-    PRIMARY KEY YCSB_KEY
-    WITH {
-        "merge-policy":{
-            "name":"constant",
-            "parameters":{
-                "num-components":""" + str(k) + """
-            }
-        }
-    };"""
+def create_table():
+    cmd = "USE ycsb; " + get_policy()
     return exe_sqlpp(cmd)
 
 
@@ -169,46 +236,23 @@ def get_base_name(f):
         return fn
 
 
-def load(records):
+def load():
     if load_threads == 1:
         thread_str = ""
     else:
         thread_str = " -threads " + str(load_threads)
-
-    if records < 1:
-        record_str = " -p insertstart=0"
-    else:
-        record_str = " -p insertstart=" + str(records)
-
-    cmd = interpreter + " \"" + ycsb + "\" load asterixdb -P \"" + load_path + "\"" + record_str + \
-        " -s" + thread_str
-
+    dist_str = " -p keydistribution=" + user_dist
+    cmd = interpreter + " \"" + ycsb + "\" load asterixdb -P \"" + load_path + "\"" + \
+        dist_str + " -s" + thread_str
     call(cmd, shell=True)
 
 
-def read(records):
-    if read_threads == 1:
-        thread_str = ""
-    else:
-        thread_str = " -threads " + str(read_threads)
-
-    if records < 1:
-        record_str = " -p recordcount=0"
-    else:
-        record_str = " -p recordcount=" + str(records)
-
-    cmd = interpreter + " \"" + ycsb + "\" run asterixdb -P \"" + read_path + "\"" + record_str + \
-        " -s" + thread_str
-
-    call(cmd, shell=True)
-
-
-def wait_merge(k):
-    print("Waiting for merge to complete (k=" + str(k) + ")...")
+def wait_merge():
+    print("Waiting for merge to complete (k=" + str(user_k) + ")...")
     while True:
         cnt = len(glob.glob(os.path.join(asterixdb, "data", "red", "storage", "partition_0", "ycsb", "usertable",
                                          "0", "usertable", "*_b")))
-        if cnt <= k:
+        if cnt <= user_k:
             return
         else:
             time.sleep(5)
@@ -221,14 +265,12 @@ def zip_log(zip_path, file_path):
     os.remove(file_path)
 
 
-def grep_logs(name, k, records):
-    flushn = name + "_flushes_" + str(k) + ".csv"
-    mergen = name + "_merges_" + str(k) + ".csv"
-    readn = name + "_reads_" + str(k) + ".csv"
+def grep_logs(records):
+    flushn = user_policy + "_flushes_" + str(user_k) + "_" + user_dist + "_0.7.csv"
+    mergen = user_policy + "_merges_" + str(user_k) + "_" + user_dist + "_0.7.csv"
 
     flushf = open(os.path.join(logs_dir, flushn), "a")
     mergef = open(os.path.join(logs_dir, mergen), "a")
-    readf = open(os.path.join(logs_dir, readn), "a")
 
     for logp in glob.glob(os.path.join(asterixdb, "logs", "*.gz")):
         with gzip.open(logp, "rt") as inf:
@@ -237,8 +279,6 @@ def grep_logs(name, k, records):
                     flushf.write(str(records) + "," + line[line.index("[FLUSH]")+8:].replace("\r", ""))
                 if "[MERGE]" in line:
                     mergef.write(str(records) + "," + line[line.index("[MERGE]")+8:].replace("\r", ""))
-                if "[SEARCH]" in line:
-                    readf.write(str(records) + "," + line[line.index("[SEARCH]")+9:].replace("\r", ""))
         inf.close()
         try:
             os.remove(logp)
@@ -252,15 +292,12 @@ def grep_logs(name, k, records):
                     flushf.write(str(records) + "," + line[line.index("[FLUSH]")+8:].replace("\r", ""))
                 if "[MERGE]" in line:
                     mergef.write(str(records) + "," + line[line.index("[MERGE]")+8:].replace("\r", ""))
-                if "[SEARCH]" in line:
-                    readf.write(str(records) + "," + line[line.index("[SEARCH]")+9:].replace("\r", ""))
         inf.close()
         emptyf = open(logp, "w")
         emptyf.close()
 
     flushf.close()
     mergef.close()
-    readf.close()
 
 
 def reset():
@@ -268,8 +305,8 @@ def reset():
     call("rm -fr \"" + asterixdb + "\"/data", shell=True)
 
 
-def run_exp(k):
-    print("Started k=" + str(k))
+def run_exp():
+    print("Started k=" + str(user_k) + " " + user_policy)
 
     # Stop server if necessary
     stop_server()
@@ -287,7 +324,7 @@ def run_exp(k):
         print("Failed to create type")
         return False
     print("Created type")
-    if not create_table(k):
+    if not create_table():
         print("Failed to create table")
         return False
     print("Created table")
@@ -299,44 +336,45 @@ def run_exp(k):
         return False
     print("Feed started")
 
-    name = "constant"
+    flushn = user_policy + "_flushes_" + str(user_k) + "_" + user_dist + "_0.7.csv"
+    mergen = user_policy + "_merges_" + str(user_k) + "_" + user_dist + "_0.7.csv"
 
-    flushn = name + "_flushes_" + str(k) + ".csv"
-    mergen = name + "_merges_" + str(k) + ".csv"
-    readn = name + "_reads_" + str(k) + ".csv"
-
-    for n in (flushn, mergen, readn):
+    for n in (flushn, mergen):
         try:
             os.remove(os.path.join(logs_dir, n))
         except:
             pass
 
-    for t in tasks:
-        records = get_records()
-        if t == "l":
-            print("Loading...")
-            load(records)
-            time.sleep(30)
-            wait_merge(k)
-            grep_logs(name, k, records)
-            print("Load done")
-        elif t == "r":
-            print("Reading...")
-            read(records)
-            grep_logs(name, k, records)
-            print("Read done")
-        else:
-            pass
+    records = 0
+
+    startTime = time.time()
+
+    print("Loading...")
+    load()
+    time.sleep(10)
+    wait_merge()
+    grep_logs(records)
+    print("Load done")
+
+    num_records = get_records()
+
+    totalTime = time.time() - startTime
+
+    try:
+        outf = open(os.path.join(logs_dir, user_policy + "_" + str(user_k) + "_" + user_dist + "_0.7.log"), "w")
+        outf.write("T: " + str(totalTime) + "\n")
+        outf.write("R: " + str(num_records) + "\n")
+        outf.close()
+    except:
+        pass
 
     zip_log(os.path.join(logs_dir, flushn + ".zip"), os.path.join(logs_dir, flushn))
     zip_log(os.path.join(logs_dir, mergen + ".zip"), os.path.join(logs_dir, mergen))
-    zip_log(os.path.join(logs_dir, readn + ".zip"), os.path.join(logs_dir, readn))
 
     stop_server()
 
-    print("Done k=" + str(k))
+    print("Done k=" + str(user_k) + " " + user_policy)
 
 
 if __name__ == "__main__":
-    for k in ks:
-        run_exp(k)
+    run_exp()
