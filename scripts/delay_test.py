@@ -132,11 +132,11 @@ CREATE DATASET usertable (usertype)
     PRIMARY KEY YCSB_KEY
     WITH {
         "merge-policy":{
-            "name":"delay-random",
+            "name":"slow",
             "parameters":{
-                "min":4,
+                "min-components":4,
                 "min-delay":4000,
-                "max-delay":180000,
+                "max-delay":180000
             }
         }
     };"""
