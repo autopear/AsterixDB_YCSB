@@ -168,7 +168,7 @@ CREATE DATASET usertable (usertype)
             "name":"slow",
             "parameters":{
                 "num-components":16,
-                "min-components":4,
+                "min-components":3,
                 "min-delay":180000,
                 "max-delay":540000
             }
