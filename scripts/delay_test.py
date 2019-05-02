@@ -23,7 +23,7 @@ if not os.path.isdir(logs_dir):
     os.mkdir(logs_dir)
 
 
-def ycsb_job(is_load, k, workload, num_threads, ops):
+def ycsb_job(is_load, workload, num_threads, ops):
     if is_load:
         load_str = "load"
     else:
@@ -36,7 +36,7 @@ def ycsb_job(is_load, k, workload, num_threads, ops):
         ops_str = ""
     else:
         ops_str = " -target " + str(ops)
-    basename = workload + "_" + str(k) + "_"
+    basename = workload + "_slow_"
     cmd = interpreter + " \"" + ycsb + "\" " + load_str + " asterixdb -P \"" + \
           os.path.join(dir_path, "workloads", workload + ".properties") + "\"" + \
           " -p exportfile=\"" + os.path.join(logs_dir, basename + "final.log") + \
@@ -159,7 +159,7 @@ def paras_to_str(paras):
     return ",".join(ret)
 
 
-def create_table(k):
+def create_table():
     cmd = """USE ycsb;
 CREATE DATASET usertable (usertype)
     PRIMARY KEY YCSB_KEY
@@ -167,6 +167,7 @@ CREATE DATASET usertable (usertype)
         "merge-policy":{
             "name":"slow",
             "parameters":{
+                "num-components":16,
                 "min-components":4,
                 "min-delay":4000,
                 "max-delay":180000
@@ -233,11 +234,11 @@ def zip_log(zip_path, file_path):
         pass
 
 
-def grep_logs(k):
-    propsn = "props_" + str(k) + ".txt"
-    flushn = "flushes_" + str(k) + ".csv"
-    mergen = "merges_" + str(k) + ".csv"
-    readn = "reads_" + str(k) + ".csv"
+def grep_logs():
+    propsn = "props_slow.txt"
+    flushn = "flushes_slow.csv"
+    mergen = "merges_slow.csv"
+    readn = "reads_slow.csv"
 
     propsf = open(os.path.join(logs_dir, propsn), "w")
     flushf = open(os.path.join(logs_dir, flushn), "w")
@@ -289,8 +290,8 @@ def reset():
     call("rm -fr \"" + asterixdb + "\"/data", shell=True)
 
 
-def run_exp(k):
-    print("Started k=" + str(k))
+def run_exp():
+    print("Started")
 
     # Stop server if necessary
     stop_server()
@@ -308,7 +309,7 @@ def run_exp(k):
         print("Failed to create type")
         return False
     print("Created type")
-    if not create_table(k):
+    if not create_table():
         print("Failed to create table")
         return False
     print("Created table")
@@ -320,10 +321,10 @@ def run_exp(k):
         return False
     print("Feed started")
 
-    propsn = "props_" + str(k) + ".txt"
-    flushn = "flushes_" + str(k) + ".csv"
-    mergen = "merges_" + str(k) + ".csv"
-    readn = "reads_" + str(k) + ".csv"
+    propsn = "props_slow.txt"
+    flushn = "flushes_slow.csv"
+    mergen = "merges_slow.csv"
+    readn = "reads_slow.csv"
 
     for n in (propsn, flushn, mergen, readn):
         try:
@@ -331,13 +332,13 @@ def run_exp(k):
         except:
             pass
 
-    p_write = mp.Process(target=ycsb_job, args=(True, k, "write", 4, 0))
-    p_read = mp.Process(target=ycsb_job, args=(False, k, "read", 1, 0))
+    p_write = mp.Process(target=ycsb_job, args=(True, "write", 4, 0))
+    p_read = mp.Process(target=ycsb_job, args=(False, "read", 1, 0))
     p_list = mp.Process(target=list_files, args=(10,))
 
-    p_list.start()
     p_write.start()
     time.sleep(10)
+    p_list.start()
     p_read.start()
 
     p_write.join()
@@ -345,8 +346,7 @@ def run_exp(k):
 
     p_list.terminate()
 
-    wait_merge(k)
-    grep_logs(k)
+    grep_logs()
 
     zip_log(os.path.join(logs_dir, flushn + ".zip"), os.path.join(logs_dir, flushn))
     zip_log(os.path.join(logs_dir, mergen + ".zip"), os.path.join(logs_dir, mergen))
@@ -354,8 +354,8 @@ def run_exp(k):
 
     stop_server()
 
-    print("Done k=" + str(k))
+    print("Done")
 
 
 if __name__ == "__main__":
-    run_exp(8)
+    run_exp()
