@@ -169,8 +169,8 @@ CREATE DATASET usertable (usertype)
             "parameters":{
                 "num-components":16,
                 "min-components":4,
-                "min-delay":4000,
-                "max-delay":180000
+                "min-delay":180000,
+                "max-delay":540000
             }
         }
     };"""
