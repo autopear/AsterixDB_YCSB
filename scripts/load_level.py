@@ -36,9 +36,9 @@ asterixdb = os.path.join(root, "asterixdb", "opt", "local")
 
 asterixdb_logs = os.path.join(asterixdb, "logs")
 usertable_dir = os.path.join(asterixdb, "data", "red", "storage", "partition_0", "ycsb", "usertable", "0", "usertable")
-if not os.path.islink(asterixdb_logs):
+if not os.path.islink(os.path.join(root, "asterixdb_logs")):
     os.symlink(asterixdb_logs, os.path.join(root, "asterixdb_logs"))
-if not os.path.islink(usertable_dir):
+if not os.path.islink(os.path.join(root, "usertable")):
     os.symlink(usertable_dir, os.path.join(root, "usertable"))
 
 
