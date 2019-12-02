@@ -18,7 +18,7 @@ SIZE_RATIO = int(sys.argv[1])
 print("Size ratio {0}".format(SIZE_RATIO))
 
 load_name = "load.properties"
-load_threads = 4  # Use 4 threads for loading
+load_threads = 1  # Use single thread for loading to guarantee ordered insertion
 
 task_name = "level-" + str(SIZE_RATIO)
 
