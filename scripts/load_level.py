@@ -195,6 +195,40 @@ def wait_io():
         time.sleep(10)
 
 
+def get_latest_log():
+    f = os.path.join(asterixdb, "logs", "nc-red.log")
+    if os.path.isfile(f):
+        return f
+    gzips = sorted(glob.glob(os.path.join(asterixdb, "logs", "nc-red-*-*-*-*.log.gz")))
+    if len(gzips) > 0:
+        return gzips[-1]
+    return ""
+
+
+def is_io_pending():
+    logp = get_latest_log()
+    if len(logp) == 0:
+        return False
+    io_started = False
+    with (open(logp, "r") if logp.endswith(".log") else gzip.open(logp, "rt")) as logf:
+        for line in logf:
+            if "[IO-START]" in line and "usertable" in line:
+                io_started = True
+            if "[IO-END]" in line and "usertable" in line:
+                tmp = line[line.index("[IO-END]") + 9:] \
+                    .replace("\r", "").replace("\n", "").split("\t")
+                current_io = int(tmp[0])
+                io_started = current_io > 0
+    inf.close()
+    return io_started
+
+
+def wait_flush_and_merge():
+    while is_io_pending():
+        print("I/O pending...")
+        time.sleep(10)
+
+
 def extract_load_logs():
     last_stats = None
     with open(os.path.join(logs_dir, task_name + ".load.tmp"), "w") as tmpf:
@@ -332,7 +366,7 @@ def run_taks():
     print("Feed started")
 
     load()
-    wait_io()
+    wait_flush_and_merge()
     extract_load_logs()
     zip_logs()
 
