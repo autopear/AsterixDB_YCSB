@@ -20,7 +20,6 @@ print("Size ratio {0}".format(SIZE_RATIO))
 load_name = "load.properties"
 load_threads = 1  # Use single thread for loading to guarantee ordered insertion
 
-task_name = "level-" + str(SIZE_RATIO)
 
 root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 ycsb = os.path.join(root, "ycsb-asterixdb-binding-0.18.0-SNAPSHOT", "bin", "ycsb")
@@ -52,6 +51,7 @@ def stop_server():
 
 query_url = ""
 feed_port = 0
+insertorder = ""
 with open(load_path, "r") as inf:
     for line in inf:
         if line.startswith("db.url="):
@@ -60,7 +60,16 @@ with open(load_path, "r") as inf:
         if line.startswith("db.feedport="):
             line = line.replace("db.feedport=", "").replace("\r", "").replace("\n", "")
             feed_port = int(line)
+        if line.startswith("insertorder="):
+            line = line.replace("insertorder=", "").replace("\r", "").replace("\n", "")
+            insertorder = line
 inf.close()
+
+task_name = "level_" + insertorder + "_" + str(SIZE_RATIO)
+
+print("Num load threads: " + str(load_threads))
+print("Insert order: " + insertorder)
+print("Task name: " + task_name)
 
 
 def write_err(msg):
@@ -223,8 +232,8 @@ def extract_load_logs():
                                     merge = int(kv.replace("merges=", ""))
                             tmpf.write("{0}\t{1}\t{2}\n".format(flush, merge, line[line.index("[MERGE]") + 8:]
                                                                 .replace("\r", "").replace("\n", "")))
-                        if "[ALLCOMPONENTS]" in line:
-                            tmp = line[line.index("[ALLCOMPONENTS]") + 16:]\
+                        if "[ALL]" in line:
+                            tmp = line[line.index("[ALL]") + 16:]\
                                 .replace("\r", "").replace("\n", "").split("\t")
                             fcnt = int(tmp[0])
                             mcnt = int(tmp[1])
@@ -259,8 +268,8 @@ def extract_load_logs():
                                     merge = int(kv.replace("merges=", ""))
                             tmpf.write("{0}\t{1}\t{2}\n".format(flush, merge, line[line.index("[MERGE]") + 8:]
                                                                 .replace("\r", "").replace("\n", "")))
-                        if "[ALLCOMPONENTS]" in line:
-                            tmp = line[line.index("[ALLCOMPONENTS]") + 16:]\
+                        if "[ALL]" in line:
+                            tmp = line[line.index("[ALL]") + 16:]\
                                 .replace("\r", "").replace("\n", "").split("\t")
                             fcnt = int(tmp[0])
                             mcnt = int(tmp[1])
