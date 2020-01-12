@@ -11,13 +11,15 @@ from subprocess import call
 from operator import itemgetter
 
 
-if len(sys.argv) != 2:
-    print("Usage: {0} SIZE_RATIO".format(os.path.basename(os.path.realpath(__file__))))
+if len(sys.argv) != 3:
+    print("Usage: {0} SIZE_RATIO DIST".format(os.path.basename(os.path.realpath(__file__))))
     sys.exit(-1)
 SIZE_RATIO = int(sys.argv[1])
 print("Size ratio {0}".format(SIZE_RATIO))
+dist = str(sys.argv[2])
+print("Distribution " + dist)
 
-load_name = "load.properties"
+load_name = "update.properties"
 load_threads = 1  # Use single thread for loading to guarantee ordered insertion
 
 
@@ -65,7 +67,7 @@ with open(load_path, "r") as inf:
             insertorder = line
 inf.close()
 
-task_name = "level_" + insertorder + "_" + str(SIZE_RATIO)
+task_name = "level_" + insertorder + "_" + str(SIZE_RATIO) + "_" + dist
 
 print("Num load threads: " + str(load_threads))
 print("Insert order: " + insertorder)
@@ -184,7 +186,8 @@ def load():
     else:
         thread_str = " -threads " + str(load_threads)
     record_str = " -p insertstart=0"
-    cmd = "python3.7 \"" + ycsb + "\" load asterixdb -P \"" + load_path + "\"" + record_str + \
+    dist_str = " -p keydistribution=" + dist
+    cmd = "python3.7 \"" + ycsb + "\" load asterixdb -P \"" + load_path + "\"" + record_str + dist_str +\
         " -s" + thread_str + " -p exportfile=\"" + os.path.join(logs_dir, task_name + ".ycsb.load.log") + "\""
     call(cmd, shell=True)
 
