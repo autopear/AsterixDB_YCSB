@@ -145,8 +145,7 @@ CREATE DATASET usertable (usertype)
             "parameters":{
                 "num-components-0":2,
                 "num-components-1":""" + str(SIZE_RATIO) + """,
-                "pick":"min-overlap",
-                "secondary-index":""
+                "pick":"min-overlap"
             }
         }
     };"""

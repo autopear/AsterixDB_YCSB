@@ -142,8 +142,7 @@ CREATE DATASET usertable (usertype)
             "name":"tiering",
             "parameters":{
                 "num-components":""" + str(SIZE_RATIO) + """,
-                "high-bucket":1.2,
-                "secondary-index":""
+                "high-bucket":1.2
             }
         }
     };"""
