@@ -11,13 +11,15 @@ from subprocess import call
 from operator import itemgetter
 
 
-if len(sys.argv) != 2:
-    print("Usage: {0} SIZE_RATIO".format(os.path.basename(os.path.realpath(__file__))))
+if len(sys.argv) != 3:
+    print("Usage: {0} SIZE_RATIO DIST".format(os.path.basename(os.path.realpath(__file__))))
     sys.exit(-1)
 SIZE_RATIO = int(sys.argv[1])
 print("Size ratio {0}".format(SIZE_RATIO))
+dist = str(sys.argv[2])
+print("Distribution " + dist)
 
-load_name = "load.properties"
+load_name = "update.properties"
 load_threads = 1  # Use single thread for loading to guarantee ordered insertion
 
 
@@ -65,7 +67,7 @@ with open(load_path, "r") as inf:
             insertorder = line
 inf.close()
 
-task_name = "level_" + insertorder + "_" + str(SIZE_RATIO)
+task_name = "tiering_" + insertorder + "_" + str(SIZE_RATIO) + "_" + dist
 
 print("Num load threads: " + str(load_threads))
 print("Insert order: " + insertorder)
@@ -139,11 +141,11 @@ CREATE DATASET usertable (usertype)
     PRIMARY KEY YCSB_KEY
     WITH {
         "merge-policy":{
-            "name":"level",
+            "name":"tiering",
             "parameters":{
-                "num-components-0":2,
-                "num-components-1":""" + str(SIZE_RATIO) + """,
-                "pick":"min-overlap"
+                "num-components":""" + str(SIZE_RATIO) + """,
+                "high-bucket":1.2,
+                "secondary-index":""
             }
         }
     };"""
@@ -210,13 +212,6 @@ def parseline(line, kw):
         return []
 
 
-def count_levels(components):
-    lvs = set()
-    for c in components:
-        lvs.add(int(c.split("_")[0]))
-    return len(lvs)
-
-
 def extract_load_logs():
     with open(os.path.join(logs_dir, task_name + ".load.tmp1"), "w") as loadtmpf, \
             open(os.path.join(logs_dir, task_name + ".tables.tmp"), "w") as tablestmpf:
@@ -275,7 +270,7 @@ def extract_load_logs():
     total_flushed = []
     total_merged = []
     tmp_space = []
-    num_levels = []
+    stack_size = []
     with open(os.path.join(logs_dir, task_name + ".load.tmp2"), "r") as inf:
         for line in inf:
             parts = line.replace("\n", "").split("\t")
@@ -287,10 +282,10 @@ def extract_load_logs():
                 total_flushed.append(flushed)
                 total_merged.append(merged)
                 tmp_space.append(0)
-                if len(num_levels) == 0:
-                    num_levels.append(1)
+                if len(stack_size) == 0:
+                    stack_size.append(1)
                 else:
-                    num_levels.append(num_levels[-1])
+                    stack_size.append(stack_size[-1] + 1)
             elif parts[0] == "M":
                 f_cnt = int(parts[1])
                 merged = int(parts[4])
@@ -303,10 +298,10 @@ def extract_load_logs():
             elif parts[0] == "C":
                 components = parts[1].split(";")
                 f_cnt = int(components[0].split("_")[1])
-                if f_cnt > len(num_levels):
-                    num_levels.append(count_levels(components))
+                if f_cnt > len(stack_size):
+                    stack_size.append(len(components))
                 else:
-                    num_levels[f_cnt - 1] = count_levels(components)
+                    stack_size[f_cnt - 1] = len(components)
             else:
                 continue
     inf.close()
@@ -316,7 +311,7 @@ def extract_load_logs():
         pass
     with open(os.path.join(logs_dir, task_name + ".load.log"), "w") as outf:
         for i in range(len(total_merged)):
-            outf.write("{0}\t{1}\t{2}\t{3}\n".format(total_flushed[i], total_merged[i], num_levels[i], tmp_space[i]))
+            outf.write("{0}\t{1}\t{2}\t{3}\n".format(total_flushed[i], total_merged[i], stack_size[i], tmp_space[i]))
     outf.close()
 
 

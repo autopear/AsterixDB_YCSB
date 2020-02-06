@@ -206,91 +206,120 @@ def wait_io():
         time.sleep(10)
 
 
+def parseline(line, kw):
+    if kw in line:
+        return line[line.index(kw) + len(kw) + 1:].replace("\n", "").split("\t")
+    else:
+        return []
+
+
+def count_levels(components):
+    lvs = set()
+    for c in components:
+        lvs.add(int(c.split("_")[0]))
+    return len(lvs)
+
+
 def extract_load_logs():
-    last_stats = None
-    with open(os.path.join(logs_dir, task_name + ".load.tmp"), "w") as tmpf:
-        for logp in glob.glob(os.path.join(asterixdb, "logs", "*.log")):
-            with open(logp, "r") as logf:
+    with open(os.path.join(logs_dir, task_name + ".load.tmp1"), "w") as loadtmpf, \
+            open(os.path.join(logs_dir, task_name + ".tables.tmp"), "w") as tablestmpf:
+        for logp in glob.glob(os.path.join(asterixdb, "logs", "nc-red.*")):
+            with (open(logp, "r") if logp.endswith(".log") else gzip.open(logp, "rt")) as logf:
                 is_err = False
                 for line in logf:
                     if is_err:
                         if " WARN " in line or " INFO " in line or "\tWARN\t" in line or "\tINFO\t" in line:
                             is_err = False
-                        else:
-                            write_err(line)
                     else:
                         if " ERROR " in line or "\tERROR\t" in line:
                             is_err = True
-                            write_err(line)
                     if not is_err:
-                        if "[MERGE]" in line:
-                            tmp = line.split("\t")
-                            flush = -1
-                            merge = -1
-                            for kv in tmp:
-                                if kv.startswith("flushes="):
-                                    flush = int(kv.replace("flushes=", ""))
-                                if kv.startswith("merges="):
-                                    merge = int(kv.replace("merges=", ""))
-                            tmpf.write("{0}\t{1}\t{2}\n".format(flush, merge, line[line.index("[MERGE]") + 8:]
-                                                                .replace("\r", "").replace("\n", "")))
-                        if "[ALL]" in line:
-                            tmp = line[line.index("[ALL]") + 6:]\
-                                .replace("\r", "").replace("\n", "").split("\t")
-                            fcnt = int(tmp[0])
-                            mcnt = int(tmp[1])
-                            cinfo = tmp[2]
-                            if (last_stats is None) or \
-                                    (fcnt > last_stats[0]) or \
-                                    (fcnt == last_stats[0] and mcnt > last_stats[1]):
-                                last_stats = (fcnt, mcnt, cinfo)
-            logf.close()
-        for logp in glob.glob(os.path.join(asterixdb, "logs", "*.gz")):
-            with gzip.open(logp, "rt") as logf:
-                is_err = False
-                for line in logf:
-                    if is_err:
-                        if " WARN " in line or " INFO " in line or "\tWARN\t" in line or "\tINFO\t" in line:
-                            is_err = False
+                        if "[FLUSH]\tusertable" in line:
+                            parts = parseline(line, "[FLUSH]\tusertable")
+                            if len(parts) != 7:
+                                continue
+                            timestamp = parts[0]
+                            new_component = parts[6]
+                            c_name = new_component.split(":")[0].replace("_", "\t")
+                            loadtmpf.write(timestamp + "\tF\t" + "\t".join(parts[1:]) + "\n")
+                            tablestmpf.write(c_name + "\t" + new_component.replace(":", "\t") + "\n")
+                        elif "[MERGE]\tusertable" in line:
+                            parts = parseline(line, "[MERGE]\tusertable")
+                            if len(parts) != 8:
+                                continue
+                            timestamp = parts[0]
+                            new_components = parts[7].split(";")
+                            loadtmpf.write(timestamp + "\tM\t" + "\t".join(parts[1:]) + "\n")
+                            for new_component in new_components:
+                                c_name = new_component.split(":")[0].replace("_", "\t")
+                                tablestmpf.write(c_name + "\t" + new_component.replace(":", "\t") + "\n")
+                        elif "[COMPONENTS]\tusertable" in line:
+                            parts = parseline(line, "[COMPONENTS]\tusertable")
+                            if len(parts) != 2:
+                                continue
+                            loadtmpf.write(parts[0] + "\tC\t" + parts[1] + "\n")
                         else:
-                            write_err(line)
-                    else:
-                        if " ERROR " in line or "\tERROR\t" in line:
-                            is_err = True
-                            write_err(line)
-                    if not is_err:
-                        if "[MERGE]" in line:
-                            tmp = line.split("\t")
-                            flush = -1
-                            merge = -1
-                            for kv in tmp:
-                                if kv.startswith("flushes="):
-                                    flush = int(kv.replace("flushes=", ""))
-                                if kv.startswith("merges="):
-                                    merge = int(kv.replace("merges=", ""))
-                            tmpf.write("{0}\t{1}\t{2}\n".format(flush, merge, line[line.index("[MERGE]") + 8:]
-                                                                .replace("\r", "").replace("\n", "")))
-                        if "[ALL]" in line:
-                            tmp = line[line.index("[ALL]") + 6:]\
-                                .replace("\r", "").replace("\n", "").split("\t")
-                            fcnt = int(tmp[0])
-                            mcnt = int(tmp[1])
-                            cinfo = tmp[2]
-                            if (last_stats is None) or \
-                                    (fcnt > last_stats[0]) or \
-                                    (fcnt == last_stats[0] and mcnt > last_stats[1]):
-                                last_stats = (fcnt, mcnt, cinfo)
+                            continue
             logf.close()
-    tmpf.close()
-    call("sort -n -k1,1 -k2,2 \"{0}.tmp\" |  cut -f3- > \"{0}.log\""
+    loadtmpf.close()
+    tablestmpf.close()
+    call("sort -n -k1,1 \"{0}.tmp1\" |  cut -f2- > \"{0}.tmp2\""
          .format(os.path.join(logs_dir, task_name + ".load")), shell=True)
     try:
-        os.remove(os.path.join(logs_dir, task_name + ".load.tmp"))
+        os.remove(os.path.join(logs_dir, task_name + ".load.tmp1"))
     except:
         pass
-    with open(os.path.join(logs_dir, task_name + ".tables.log"), "w") as outf:
-        if last_stats is not None:
-            outf.write("{0}\t{1}\t{2}".format(last_stats[0], last_stats[1], last_stats[2]))
+    call("sort -n -k1,1 -k2,2 \"{0}.tmp\" |  cut -f3- > \"{0}.log\""
+         .format(os.path.join(logs_dir, task_name + ".tables")), shell=True)
+    try:
+        os.remove(os.path.join(logs_dir, task_name + ".tables.tmp"))
+    except:
+        pass
+    total_flushed = []
+    total_merged = []
+    tmp_space = []
+    num_levels = []
+    with open(os.path.join(logs_dir, task_name + ".load.tmp2"), "r") as inf:
+        for line in inf:
+            parts = line.replace("\n", "").split("\t")
+            if len(parts) < 2:
+                continue
+            if parts[0] == "F":
+                flushed = int(parts[3])
+                merged = int(parts[4])
+                total_flushed.append(flushed)
+                total_merged.append(merged)
+                tmp_space.append(0)
+                if len(num_levels) == 0:
+                    num_levels.append(1)
+                else:
+                    num_levels.append(num_levels[-1])
+            elif parts[0] == "M":
+                f_cnt = int(parts[1])
+                merged = int(parts[4])
+                new_components = parts[7].split(";")
+                new_size = 0
+                for c in new_components:
+                    new_size += int(c.split(":")[1])
+                total_merged[f_cnt - 1] = merged
+                tmp_space[f_cnt - 1] = max(tmp_space[f_cnt - 1], new_size)
+            elif parts[0] == "C":
+                components = parts[1].split(";")
+                f_cnt = int(components[0].split("_")[1])
+                if f_cnt > len(num_levels):
+                    num_levels.append(count_levels(components))
+                else:
+                    num_levels[f_cnt - 1] = count_levels(components)
+            else:
+                continue
+    inf.close()
+    try:
+        os.remove(os.path.join(logs_dir, task_name + ".load.tmp2"))
+    except:
+        pass
+    with open(os.path.join(logs_dir, task_name + ".load.log"), "w") as outf:
+        for i in range(len(total_merged)):
+            outf.write("{0}\t{1}\t{2}\t{3}\n".format(total_flushed[i], total_merged[i], num_levels[i], tmp_space[i]))
     outf.close()
 
 
