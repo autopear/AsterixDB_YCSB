@@ -215,7 +215,7 @@ def parseline(line, kw):
 def extract_load_logs():
     with open(os.path.join(logs_dir, task_name + ".load.tmp1"), "w") as loadtmpf, \
             open(os.path.join(logs_dir, task_name + ".tables.tmp"), "w") as tablestmpf:
-        for logp in glob.glob(os.path.join(asterixdb, "logs", "nc-red.*")):
+        for logp in glob.glob(os.path.join(asterixdb, "logs", "nc-red*")):
             with (open(logp, "r") if logp.endswith(".log") else gzip.open(logp, "rt")) as logf:
                 is_err = False
                 for line in logf:
