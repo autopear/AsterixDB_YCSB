@@ -185,7 +185,8 @@ def load():
     else:
         thread_str = " -threads " + str(load_threads)
     record_str = " -p insertstart=0"
-    cmd = "python3.7 \"" + ycsb + "\" load asterixdb -P \"" + load_path + "\"" + record_str + \
+    dist_str = " -p keydistribution=" + dist
+    cmd = "python3.7 \"" + ycsb + "\" load asterixdb -P \"" + load_path + "\"" + record_str + dist_str +\
         " -s" + thread_str + " -p exportfile=\"" + os.path.join(logs_dir, task_name + ".ycsb.load.log") + "\""
     call(cmd, shell=True)
 
@@ -365,12 +366,11 @@ def run_taks():
 
     load()
     wait_io()
+    stop_feed()
+    stop_server()
+
     extract_load_logs()
     zip_logs()
-
-    stop_feed()
-
-    stop_server()
 
     print("Done")
 

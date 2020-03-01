@@ -373,12 +373,11 @@ def run_taks():
 
     load()
     wait_io()
+    stop_feed()
+    stop_server()
+
     extract_load_logs()
     zip_logs()
-
-    stop_feed()
-
-    stop_server()
 
     print("Done")
 
